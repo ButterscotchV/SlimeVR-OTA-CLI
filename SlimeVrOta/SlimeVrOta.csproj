@@ -6,6 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <PublishAot>True</PublishAot>
+    <AssemblyName>SlimeVR-OTA</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>
