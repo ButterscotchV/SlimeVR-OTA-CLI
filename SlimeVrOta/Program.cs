@@ -29,6 +29,7 @@ try
         throw new Exception($"Received a non-handshake packet on {port} from {endPoint}.");
     }
     Console.WriteLine($"Received a handshake packet on {port} from {endPoint}.");
+
     Console.WriteLine("Press enter to flash the tracker...");
     Console.ReadLine();
 
@@ -58,7 +59,10 @@ try
         throw new Exception($"Received a non-handshake packet on {port} from {endPoint}.");
     }
     Console.WriteLine($"Received a handshake packet on {port} from {endPoint}.");
-    Console.WriteLine($"Tracker {endPoint} has been flashed successfully");
+
+    Console.WriteLine($"Tracker {endPoint} has been flashed successfully.");
+    Console.WriteLine("Press any key to exit...");
+    Console.ReadKey();
 }
 catch (Exception e)
 {
