@@ -1,9 +1,10 @@
-
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.8.34525.116
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SlimeVrOta", "SlimeVrOta\SlimeVrOta.csproj", "{7B16BFEC-274F-4BB5-81E9-A26FF3FEDA8F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SlimeVrOta.Gui", "SlimeVrOta.Gui\SlimeVrOta.Gui.csproj", "{BB15E5E3-258E-47C8-9906-A742C45859FA}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +16,10 @@ Global
 		{7B16BFEC-274F-4BB5-81E9-A26FF3FEDA8F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7B16BFEC-274F-4BB5-81E9-A26FF3FEDA8F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7B16BFEC-274F-4BB5-81E9-A26FF3FEDA8F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BB15E5E3-258E-47C8-9906-A742C45859FA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BB15E5E3-258E-47C8-9906-A742C45859FA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BB15E5E3-258E-47C8-9906-A742C45859FA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BB15E5E3-258E-47C8-9906-A742C45859FA}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

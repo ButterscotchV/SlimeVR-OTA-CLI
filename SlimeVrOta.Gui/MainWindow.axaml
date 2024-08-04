@@ -1,0 +1,63 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        x:Class="SlimeVrOta.Gui.MainWindow"
+        Title="SlimeVR OTA Tool"
+        SizeToContent="WidthAndHeight"
+        Padding="8"
+        Background="{DynamicResource BackgroundBrush}">
+
+  <Window.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Light">
+          <SolidColorBrush x:Key="BackgroundBrush">WhiteSmoke</SolidColorBrush>
+          <SolidColorBrush x:Key="MidgroundBrush">#e2d8eb</SolidColorBrush>
+          <BoxShadows x:Key="BorderShadow">1 1 8 2 #c5c5c5</BoxShadows>
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="Dark">
+          <SolidColorBrush x:Key="BackgroundBrush">#252525</SolidColorBrush>
+          <SolidColorBrush x:Key="MidgroundBrush">#383442</SolidColorBrush>
+          <BoxShadows x:Key="BorderShadow">1 1 8 2 #161616</BoxShadows>
+        </ResourceDictionary>
+      </ResourceDictionary.ThemeDictionaries>
+    </ResourceDictionary>
+  </Window.Resources>
+
+  <StackPanel x:Name="Root" Spacing="8">
+    <Border Padding="8"
+            CornerRadius="4"
+            BoxShadow="{DynamicResource BorderShadow}"
+            Background="{DynamicResource MidgroundBrush}"
+            DragDrop.AllowDrop="True"
+            Name="FirmwareDropBox">
+      <Grid ColumnDefinitions="Auto,*">
+        <Button Name="SelectFileButton">Select Firmware</Button>
+        <TextBlock Grid.Column="1"
+                   VerticalAlignment="Center"
+                   Margin="16 0 4 0"
+                   TextTrimming="CharacterEllipsis"
+                   Name="FirmwareFileText">
+          No firmware selected...
+        </TextBlock>
+      </Grid>
+    </Border>
+    <Button HorizontalAlignment="Stretch"
+            HorizontalContentAlignment="Center"
+            IsEnabled="False"
+            Name="FlashButton">
+      Start Flashing
+    </Button>
+    
+    <Separator/>
+    
+    <TextBlock VerticalAlignment="Center" 
+               HorizontalAlignment="Center"
+               TextTrimming="CharacterEllipsis"
+               Name="FlashStatusText">
+      No firmware selected...
+    </TextBlock>
+    <ProgressBar Height="22" Name="FlashProgress"/>
+  </StackPanel>
+</Window>
