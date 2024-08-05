@@ -6,6 +6,8 @@
     <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <PublishAot>True</PublishAot>
+    <AssemblyName>SlimeVR-OTA-GUI</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>

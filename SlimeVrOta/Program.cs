@@ -57,8 +57,9 @@ try
 
     try
     {
-        await EspOta.Serve(
+        await new EspOta().Serve(
             new IPEndPoint(endPoint.Address, 8266),
+            new IPEndPoint(IPAddress.Any, 0),
             file.Name,
             await File.ReadAllBytesAsync(file.FullName),
             "SlimeVR-OTA",

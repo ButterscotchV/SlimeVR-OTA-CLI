@@ -345,8 +345,9 @@ namespace SlimeVrOta.Gui
                 {
                     FlashProgress.Value = (val.cur / (double)val.max) * 95.0;
                 });
-                await EspOta.Serve(
+                await new EspOta().Serve(
                     new IPEndPoint(_endPoint.Address, 8266),
+                    new IPEndPoint(IPAddress.Any, 0),
                     fileName,
                     fileBytes,
                     "SlimeVR-OTA",

@@ -5,7 +5,7 @@ using System.Text;
 
 namespace SlimeVrOta
 {
-    public static class EspOta
+    public class EspOta
     {
         public enum OtaCommands
         {
@@ -13,6 +13,9 @@ namespace SlimeVrOta
             SPIFFS = 100,
             AUTH = 200,
         }
+
+        public TimeSpan Timeout { get; set; } = TimeSpan.FromSeconds(10);
+        public int TimeoutMs => (int)Timeout.TotalMilliseconds;
 
         private static string Md5Hash(ReadOnlySpan<byte> bytes)
         {
@@ -24,82 +27,11 @@ namespace SlimeVrOta
             return Md5Hash(Encoding.UTF8.GetBytes(text));
         }
 
-        public static Task Serve(
-            IPEndPoint remoteEndPoint,
-            string fileName,
-            byte[] fileData,
-            string auth = "",
-            OtaCommands command = OtaCommands.FLASH,
-            IProgress<(int cur, int max)>? progress = null,
-            CancellationToken cancelToken = default
-        )
-        {
-            return Serve(
-                remoteEndPoint,
-                new IPEndPoint(IPAddress.Any, 0),
-                fileName,
-                fileData,
-                auth,
-                command,
-                progress,
-                cancelToken
-            );
-        }
-
-        public static Task Serve(
+        public async Task Serve(
             IPEndPoint remoteEndPoint,
             IPEndPoint localEndPoint,
             string fileName,
             byte[] fileData,
-            string auth = "",
-            OtaCommands command = OtaCommands.FLASH,
-            IProgress<(int cur, int max)>? progress = null,
-            CancellationToken cancelToken = default
-        )
-        {
-            return Serve(
-                remoteEndPoint,
-                localEndPoint,
-                fileName,
-                fileData,
-                TimeSpan.FromSeconds(10),
-                auth,
-                command,
-                progress,
-                cancelToken
-            );
-        }
-
-        public static Task Serve(
-            IPEndPoint remoteEndPoint,
-            string fileName,
-            byte[] fileData,
-            TimeSpan timeout,
-            string auth = "",
-            OtaCommands command = OtaCommands.FLASH,
-            IProgress<(int cur, int max)>? progress = null,
-            CancellationToken cancelToken = default
-        )
-        {
-            return Serve(
-                remoteEndPoint,
-                new IPEndPoint(IPAddress.Any, 0),
-                fileName,
-                fileData,
-                timeout,
-                auth,
-                command,
-                progress,
-                cancelToken
-            );
-        }
-
-        public static async Task Serve(
-            IPEndPoint remoteEndPoint,
-            IPEndPoint localEndPoint,
-            string fileName,
-            byte[] fileData,
-            TimeSpan timeout,
             string auth = "",
             OtaCommands command = OtaCommands.FLASH,
             IProgress<(int cur, int max)>? progress = null,
@@ -108,11 +40,10 @@ namespace SlimeVrOta
         {
             Console.WriteLine("Starting OTA...");
 
-            var timeoutMs = (int)timeout.TotalMilliseconds;
             using var listener = new TcpListener(localEndPoint);
             listener.Server.NoDelay = true;
-            listener.Server.SendTimeout = timeoutMs;
-            listener.Server.ReceiveTimeout = timeoutMs;
+            listener.Server.SendTimeout = TimeoutMs;
+            listener.Server.ReceiveTimeout = TimeoutMs;
             listener.Start();
             var listenerEndPoint = (IPEndPoint)listener.LocalEndpoint;
 
@@ -120,8 +51,8 @@ namespace SlimeVrOta
             var fileMd5 = Md5Hash(fileData);
 
             using var initClient = new UdpClient();
-            initClient.Client.SendTimeout = timeoutMs;
-            initClient.Client.ReceiveTimeout = timeoutMs;
+            initClient.Client.SendTimeout = TimeoutMs;
+            initClient.Client.ReceiveTimeout = TimeoutMs;
             initClient.Connect(remoteEndPoint);
 
             await initClient.SendAsync(
@@ -137,7 +68,7 @@ namespace SlimeVrOta
                 using var receiveTimeout = CancellationTokenSource.CreateLinkedTokenSource(
                     cancelToken
                 );
-                receiveTimeout.CancelAfter(timeout);
+                receiveTimeout.CancelAfter(Timeout);
                 initResponse = await initClient.ReceiveAsync(receiveTimeout.Token);
             }
             catch (Exception ex)
@@ -168,7 +99,7 @@ namespace SlimeVrOta
                         using var authTimeout = CancellationTokenSource.CreateLinkedTokenSource(
                             cancelToken
                         );
-                        authTimeout.CancelAfter(timeout);
+                        authTimeout.CancelAfter(Timeout);
                         authResponse = await initClient.ReceiveAsync(authTimeout.Token);
                     }
                     catch (Exception ex)
@@ -200,7 +131,7 @@ namespace SlimeVrOta
                 using var acceptTimeout = CancellationTokenSource.CreateLinkedTokenSource(
                     cancelToken
                 );
-                acceptTimeout.CancelAfter(timeout);
+                acceptTimeout.CancelAfter(Timeout);
                 device = await listener.AcceptTcpClientAsync(acceptTimeout.Token);
             }
             catch (Exception ex)
@@ -216,8 +147,8 @@ namespace SlimeVrOta
             }
 
             Console.WriteLine("Connected to device, sending firmware");
-            device.ReceiveTimeout = timeoutMs;
-            device.SendTimeout = timeoutMs;
+            device.ReceiveTimeout = TimeoutMs;
+            device.SendTimeout = TimeoutMs;
 
             using var fileStream = new MemoryStream(fileData);
             var bytesWritten = 0;
@@ -239,7 +170,7 @@ namespace SlimeVrOta
                     using var responseTimeout = CancellationTokenSource.CreateLinkedTokenSource(
                         cancelToken
                     );
-                    responseTimeout.CancelAfter(timeout);
+                    responseTimeout.CancelAfter(Timeout);
                     var responseSize = await device.Client.ReceiveAsync(
                         buffer.AsMemory(0, 10),
                         responseTimeout.Token
@@ -268,7 +199,7 @@ namespace SlimeVrOta
                     using var responseTimeout = CancellationTokenSource.CreateLinkedTokenSource(
                         cancelToken
                     );
-                    responseTimeout.CancelAfter(timeout);
+                    responseTimeout.CancelAfter(Timeout);
                     var responseSize = await device.Client.ReceiveAsync(
                         buffer.AsMemory(0, 32),
                         responseTimeout.Token
