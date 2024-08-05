@@ -30,6 +30,7 @@ namespace SlimeVrOta
             byte[] fileData,
             string auth = "",
             OtaCommands command = OtaCommands.FLASH,
+            IProgress<(int cur, int max)>? progress = null,
             CancellationToken cancelToken = default
         )
         {
@@ -40,6 +41,7 @@ namespace SlimeVrOta
                 fileData,
                 auth,
                 command,
+                progress,
                 cancelToken
             );
         }
@@ -51,6 +53,7 @@ namespace SlimeVrOta
             byte[] fileData,
             string auth = "",
             OtaCommands command = OtaCommands.FLASH,
+            IProgress<(int cur, int max)>? progress = null,
             CancellationToken cancelToken = default
         )
         {
@@ -62,6 +65,7 @@ namespace SlimeVrOta
                 TimeSpan.FromSeconds(10),
                 auth,
                 command,
+                progress,
                 cancelToken
             );
         }
@@ -73,6 +77,7 @@ namespace SlimeVrOta
             TimeSpan timeout,
             string auth = "",
             OtaCommands command = OtaCommands.FLASH,
+            IProgress<(int cur, int max)>? progress = null,
             CancellationToken cancelToken = default
         )
         {
@@ -84,6 +89,7 @@ namespace SlimeVrOta
                 timeout,
                 auth,
                 command,
+                progress,
                 cancelToken
             );
         }
@@ -96,6 +102,7 @@ namespace SlimeVrOta
             TimeSpan timeout,
             string auth = "",
             OtaCommands command = OtaCommands.FLASH,
+            IProgress<(int cur, int max)>? progress = null,
             CancellationToken cancelToken = default
         )
         {
@@ -223,6 +230,7 @@ namespace SlimeVrOta
                 Console.WriteLine(
                     $"Written {bytesWritten} out of {contentSize} ({bytesWritten / (float)contentSize:0.0%})"
                 );
+                progress?.Report((bytesWritten, contentSize));
 
                 try
                 {

@@ -15,17 +15,19 @@
           <SolidColorBrush x:Key="BackgroundBrush">WhiteSmoke</SolidColorBrush>
           <SolidColorBrush x:Key="MidgroundBrush">#e2d8eb</SolidColorBrush>
           <BoxShadows x:Key="BorderShadow">1 1 8 2 #c5c5c5</BoxShadows>
+          <SolidColorBrush x:Key="ProgressBrush">#d080ff</SolidColorBrush>
         </ResourceDictionary>
         <ResourceDictionary x:Key="Dark">
           <SolidColorBrush x:Key="BackgroundBrush">#252525</SolidColorBrush>
           <SolidColorBrush x:Key="MidgroundBrush">#383442</SolidColorBrush>
           <BoxShadows x:Key="BorderShadow">1 1 8 2 #161616</BoxShadows>
+          <SolidColorBrush x:Key="ProgressBrush">#a070d0</SolidColorBrush>
         </ResourceDictionary>
       </ResourceDictionary.ThemeDictionaries>
     </ResourceDictionary>
   </Window.Resources>
 
-  <StackPanel x:Name="Root" Spacing="8">
+  <StackPanel x:Name="Root" Spacing="4">
     <Border Padding="8"
             CornerRadius="4"
             BoxShadow="{DynamicResource BorderShadow}"
@@ -43,21 +45,44 @@
         </TextBlock>
       </Grid>
     </Border>
-    <Button HorizontalAlignment="Stretch"
-            HorizontalContentAlignment="Center"
-            IsEnabled="False"
-            Name="FlashButton">
-      Start Flashing
-    </Button>
-    
-    <Separator/>
+
+    <Border Margin="0 6 0 6"
+            Padding="8"
+            CornerRadius="4"
+            BoxShadow="{DynamicResource BorderShadow}"
+            Background="{DynamicResource MidgroundBrush}">
+      <Grid ColumnDefinitions="Auto,*">
+        <Button HorizontalAlignment="Stretch" 
+                HorizontalContentAlignment="Center"
+                IsEnabled="False"
+                Name="RemoveTrackerButton">
+          Remove Tracker
+        </Button>
+        <TextBlock Grid.Column="1"
+                   Margin="16 0 4 0"
+                   VerticalAlignment="Center"
+                   TextTrimming="CharacterEllipsis"
+                   Name="TrackerStatusText">
+          Waiting for tracker to connect...
+        </TextBlock>
+      </Grid>
+    </Border>
     
     <TextBlock VerticalAlignment="Center" 
                HorizontalAlignment="Center"
                TextTrimming="CharacterEllipsis"
                Name="FlashStatusText">
-      No firmware selected...
+      Idle...
     </TextBlock>
-    <ProgressBar Height="22" Name="FlashProgress"/>
+    <ProgressBar Height="24"
+                 ShowProgressText="True"
+                 Foreground="{DynamicResource ProgressBrush}"
+                 Name="FlashProgress"/>
+    <Button HorizontalAlignment="Stretch"
+            HorizontalContentAlignment="Center"
+            IsEnabled="False"
+            Name="FlashButton">
+      Flash Tracker
+    </Button>
   </StackPanel>
 </Window>
