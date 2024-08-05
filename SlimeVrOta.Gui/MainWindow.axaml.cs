@@ -6,6 +6,7 @@ using System.IO.Compression;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -189,7 +190,7 @@ namespace SlimeVrOta.Gui
             }
         }
 
-        public async Task ReceiveHandshake()
+        public async Task ReceiveHandshake(CancellationToken cancelToken = default)
         {
             if (_socket == null)
             {
@@ -201,11 +202,17 @@ namespace SlimeVrOta.Gui
                 _socket.Bind(_localEndPoint);
             }
 
-            while (_socket.IsBound)
+            while (!cancelToken.IsCancellationRequested && _socket.IsBound)
             {
                 try
                 {
-                    var data = await _socket.ReceiveFromAsync(_udpBuffer, _endPoint);
+                    // Clear socket buffer
+                    while (!cancelToken.IsCancellationRequested && _socket.Available > 0)
+                    {
+                        await _socket.ReceiveFromAsync(_udpBuffer, _endPoint, cancelToken);
+                    }
+
+                    var data = await _socket.ReceiveFromAsync(_udpBuffer, _endPoint, cancelToken);
                     if (
                         data.ReceivedBytes < 4
                         || data.RemoteEndPoint is not IPEndPoint remoteEndpoint
@@ -343,7 +350,7 @@ namespace SlimeVrOta.Gui
 
                 var progress = new Progress<(int cur, int max)>(val =>
                 {
-                    FlashProgress.Value = (val.cur / (double)val.max) * 95.0;
+                    FlashProgress.Value = (val.cur / (double)val.max) * 50.0;
                 });
                 await new EspOta().Serve(
                     new IPEndPoint(_endPoint.Address, 8266),
@@ -357,25 +364,41 @@ namespace SlimeVrOta.Gui
 
                 Debug.WriteLine("Waiting for tracker response");
                 CurrentState = FlashState.Waiting;
-                await ReceiveHandshake();
 
-                Debug.WriteLine(
-                    "Tracker response received, waiting to make sure everything is done"
-                );
-                for (var i = 0; i < 5; i++)
+                using var cancelSrc = new CancellationTokenSource();
+                var handshake = ReceiveHandshake(cancelSrc.Token);
+                // 45 second timeout, it should not take that long
+                cancelSrc.CancelAfter(45000);
+
+                using var timerCancel = new CancellationTokenSource();
+                try
                 {
-                    await Task.Delay(1000);
-                    FlashProgress.Value = 96.0 + i;
+                    handshake.GetAwaiter().OnCompleted(timerCancel.Cancel);
+                    while (
+                        !timerCancel.IsCancellationRequested
+                        && !handshake.IsCompleted
+                        && FlashProgress.Value < 95.0
+                    )
+                    {
+                        await Task.Delay(300, timerCancel.Token);
+                        FlashProgress.Value += 1.0;
+                    }
+                }
+                catch
+                {
+                    // Ignore, this is just to wait for the handshake to finish
                 }
 
+                await handshake;
+
                 Debug.WriteLine("Firmware flashed successfully");
+                FlashProgress.Value = 100.0;
                 CurrentState = FlashState.Done;
             }
             catch (Exception ex)
             {
                 Debug.WriteLine(ex);
                 CurrentState = FlashState.Error;
-                throw;
             }
         }
     }

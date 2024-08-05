@@ -26,6 +26,12 @@ try
 
     async Task WaitForHandshake()
     {
+        // Clear socket buffer
+        while (slimeSocket.Available > 0)
+        {
+            await slimeSocket.ReceiveFromAsync(udpBuffer, endPoint);
+        }
+
         var data = await slimeSocket.ReceiveFromAsync(udpBuffer, endPoint);
         if (data.ReceivedBytes < 4 || data.RemoteEndPoint is not IPEndPoint receivedEndPoint)
         {
@@ -74,9 +80,6 @@ try
     Console.WriteLine("Waiting to receive post-flash handshake...");
     await WaitForHandshake();
     Console.WriteLine($"Received a handshake packet on port {port} from {endPoint}.");
-
-    Console.WriteLine("Waiting for 5 seconds to ensure the tracker has time to finish flashing...");
-    await Task.Delay(5000);
 
     Console.WriteLine(
         $"Tracker {endPoint} has been flashed successfully.\nWARNING: Please test your tracker before turning it off or proceeding to flash another tracker!"
