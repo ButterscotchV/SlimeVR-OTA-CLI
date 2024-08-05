@@ -15,50 +15,62 @@ try
     }
 
     var port = 6969;
+    var udpBuffer = new byte[65535];
+    using var slimeSocket = new Socket(
+        AddressFamily.InterNetwork,
+        SocketType.Dgram,
+        ProtocolType.Udp
+    );
+    slimeSocket.Bind(new IPEndPoint(IPAddress.Any, port));
     var endPoint = new IPEndPoint(IPAddress.Any, port);
-    using var slimeClient = new UdpClient(port);
+
+    async Task WaitForHandshake()
+    {
+        var data = await slimeSocket.ReceiveFromAsync(udpBuffer, endPoint);
+        if (data.ReceivedBytes < 4 || data.RemoteEndPoint is not IPEndPoint receivedEndPoint)
+        {
+            throw new Exception(
+                $"Received an invalid SlimeVR packet on port {port} from {data.RemoteEndPoint}."
+            );
+        }
+
+        var packetType = BinaryPrimitives.ReadUInt32BigEndian(udpBuffer);
+        // 3 is a handshake packet
+        if (packetType != 3)
+        {
+            throw new Exception(
+                $"Received a non-handshake packet on port {port} from {data.RemoteEndPoint}."
+            );
+        }
+
+        endPoint = receivedEndPoint;
+    }
 
     Console.WriteLine("Waiting to receive tracker handshake...");
-
-    var data = slimeClient.Receive(ref endPoint);
-    var packetType = BinaryPrimitives.ReadUInt32BigEndian(data);
-
-    // Handshake packet
-    if (packetType != 3)
-    {
-        throw new Exception($"Received a non-handshake packet on {port} from {endPoint}.");
-    }
-    Console.WriteLine($"Received a handshake packet on {port} from {endPoint}.");
+    await WaitForHandshake();
+    Console.WriteLine($"Received a handshake packet on port {port} from {endPoint}.");
 
     Console.WriteLine("Press enter to flash the tracker...");
     Console.ReadLine();
 
-    var flashResult = EspOta
-        .Serve(
+    try
+    {
+        await EspOta.Serve(
             new IPEndPoint(endPoint.Address, 8266),
             file.Name,
-            File.ReadAllBytes(file.FullName),
+            await File.ReadAllBytesAsync(file.FullName),
             "SlimeVR-OTA",
             EspOta.OtaCommands.FLASH
-        )
-        .Result;
-
-    if (!flashResult)
+        );
+    }
+    catch (Exception ex)
     {
-        throw new Exception($"Failed to flash tracker {endPoint}.");
+        throw new OtaException($"Failed to flash tracker {endPoint}.", ex);
     }
 
     Console.WriteLine("Waiting to receive post-flash handshake...");
-
-    data = slimeClient.Receive(ref endPoint);
-    packetType = BinaryPrimitives.ReadUInt32BigEndian(data);
-
-    // Handshake packet
-    if (packetType != 3)
-    {
-        throw new Exception($"Received a non-handshake packet on {port} from {endPoint}.");
-    }
-    Console.WriteLine($"Received a handshake packet on {port} from {endPoint}.");
+    await WaitForHandshake();
+    Console.WriteLine($"Received a handshake packet on port {port} from {endPoint}.");
 
     Console.WriteLine($"Tracker {endPoint} has been flashed successfully.");
     Console.WriteLine("Press any key to exit...");

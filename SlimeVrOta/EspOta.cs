@@ -24,7 +24,7 @@ namespace SlimeVrOta
             return Md5Hash(Encoding.UTF8.GetBytes(text));
         }
 
-        public static Task<bool> Serve(
+        public static Task Serve(
             IPEndPoint remoteEndPoint,
             string fileName,
             byte[] fileData,
@@ -46,7 +46,7 @@ namespace SlimeVrOta
             );
         }
 
-        public static Task<bool> Serve(
+        public static Task Serve(
             IPEndPoint remoteEndPoint,
             IPEndPoint localEndPoint,
             string fileName,
@@ -70,7 +70,7 @@ namespace SlimeVrOta
             );
         }
 
-        public static Task<bool> Serve(
+        public static Task Serve(
             IPEndPoint remoteEndPoint,
             string fileName,
             byte[] fileData,
@@ -94,7 +94,7 @@ namespace SlimeVrOta
             );
         }
 
-        public static async Task<bool> Serve(
+        public static async Task Serve(
             IPEndPoint remoteEndPoint,
             IPEndPoint localEndPoint,
             string fileName,
@@ -140,10 +140,10 @@ namespace SlimeVrOta
                 receiveTimeout.CancelAfter(timeout);
                 initResponse = await initClient.ReceiveAsync(receiveTimeout.Token);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 Console.WriteLine("OTA request failed, no response");
-                return false;
+                throw new OtaException("OTA request failed, no response.", ex);
             }
 
             var initResponseText = Encoding.UTF8.GetString(initResponse.Buffer);
@@ -171,23 +171,25 @@ namespace SlimeVrOta
                         authTimeout.CancelAfter(timeout);
                         authResponse = await initClient.ReceiveAsync(authTimeout.Token);
                     }
-                    catch (Exception)
+                    catch (Exception ex)
                     {
                         Console.WriteLine("Auth failed, no response");
-                        return false;
+                        throw new OtaException("Auth failed, no response.", ex);
                     }
 
                     var authResponseText = Encoding.UTF8.GetString(authResponse.Buffer);
                     if (authResponseText != "OK")
                     {
                         Console.WriteLine($"Auth failed, bad response: {authResponseText}");
-                        return false;
+                        throw new OtaException(
+                            $"Auth failed, bad response: \"{authResponseText}\""
+                        );
                     }
                 }
                 else
                 {
                     Console.WriteLine($"Bad response: {initResponseText}");
-                    return false;
+                    throw new OtaException($"Bad response: \"{initResponseText}\"");
                 }
             }
 
@@ -201,16 +203,16 @@ namespace SlimeVrOta
                 acceptTimeout.CancelAfter(timeout);
                 device = await listener.AcceptTcpClientAsync(acceptTimeout.Token);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 Console.WriteLine("No response from device");
-                return false;
+                throw new OtaException("No response from device.", ex);
             }
 
             if (!device.Connected)
             {
                 Console.WriteLine("Device did not connect");
-                return false;
+                throw new OtaException("Device did not connect.");
             }
 
             Console.WriteLine("Connected to device, sending firmware");
@@ -244,17 +246,17 @@ namespace SlimeVrOta
                     );
                     response = Encoding.UTF8.GetString(buffer.AsSpan(0, responseSize));
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
                     Console.WriteLine("Lost connection while writing firmware");
-                    return false;
+                    throw new OtaException("Lost connection while writing firmware.", ex);
                 }
             }
 
             if (response.Contains("OK"))
             {
                 Console.WriteLine("Success");
-                return true;
+                return;
             }
 
             Console.WriteLine("Waiting for response...");
@@ -273,22 +275,22 @@ namespace SlimeVrOta
                     );
                     response = Encoding.UTF8.GetString(buffer.AsSpan(0, responseSize));
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
                     Console.WriteLine("Lost connection while waiting for response");
-                    return false;
+                    throw new OtaException("Lost connection while waiting for response.", ex);
                 }
                 Console.WriteLine($"Result: {response}");
 
                 if (response.Contains("OK"))
                 {
                     Console.WriteLine("Success");
-                    return true;
+                    return;
                 }
             }
 
             Console.WriteLine("Error response from device");
-            return false;
+            throw new OtaException("Error response from device.");
         }
     }
 }

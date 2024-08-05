@@ -47,6 +47,8 @@ namespace SlimeVrOta.Gui
         private static readonly int _port = 6969;
         private readonly byte[] _udpBuffer = new byte[65535];
         private static readonly IPEndPoint _localEndPoint = new(IPAddress.Any, _port);
+
+        private Socket? _socket;
         private IPEndPoint _endPoint = new(IPAddress.Any, _port);
 
         private FlashState _currentState = FlashState.Connecting;
@@ -89,6 +91,14 @@ namespace SlimeVrOta.Gui
             MaxHeight = Height;
 
             SizeToContent = SizeToContent.Manual;
+        }
+
+        protected override void OnClosed(EventArgs e)
+        {
+            base.OnClosed(e);
+
+            _socket?.Dispose();
+            _socket = null;
         }
 
         private void UpdateFileStatus()
@@ -181,34 +191,52 @@ namespace SlimeVrOta.Gui
 
         public async Task ReceiveHandshake()
         {
-            using var slimeSocket = new Socket(
-                AddressFamily.InterNetwork,
-                SocketType.Dgram,
-                ProtocolType.Udp
-            );
-            slimeSocket.Bind(_localEndPoint);
-
-            var data = await slimeSocket.ReceiveFromAsync(_udpBuffer, _endPoint);
-            if (data.ReceivedBytes < 4 || data.RemoteEndPoint is not IPEndPoint remoteEndpoint)
+            if (_socket == null)
             {
-                throw new Exception(
-                    $"Received an invalid SlimeVR packet on port {_port} from {data.RemoteEndPoint}."
+                _socket = new Socket(
+                    AddressFamily.InterNetwork,
+                    SocketType.Dgram,
+                    ProtocolType.Udp
                 );
+                _socket.Bind(_localEndPoint);
             }
 
-            var packetType = BinaryPrimitives.ReadUInt32BigEndian(_udpBuffer);
-            // 3 is a handshake packet
-            if (packetType != 3)
+            while (_socket.IsBound)
             {
-                throw new Exception(
-                    $"Received a non-handshake packet on port {_port} from {data.RemoteEndPoint}."
-                );
-            }
+                try
+                {
+                    var data = await _socket.ReceiveFromAsync(_udpBuffer, _endPoint);
+                    if (
+                        data.ReceivedBytes < 4
+                        || data.RemoteEndPoint is not IPEndPoint remoteEndpoint
+                    )
+                    {
+                        throw new Exception(
+                            $"Received an invalid SlimeVR packet on port {_port} from {data.RemoteEndPoint}."
+                        );
+                    }
 
-            if (CurrentState == FlashState.Connecting)
-            {
-                _endPoint = remoteEndpoint;
-                CurrentState = FlashState.Ready;
+                    var packetType = BinaryPrimitives.ReadUInt32BigEndian(_udpBuffer);
+                    // 3 is a handshake packet
+                    if (packetType != 3)
+                    {
+                        throw new Exception(
+                            $"Received a non-handshake packet on port {_port} from {data.RemoteEndPoint}."
+                        );
+                    }
+
+                    if (CurrentState == FlashState.Connecting)
+                    {
+                        _endPoint = remoteEndpoint;
+                        CurrentState = FlashState.Ready;
+                    }
+
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine(ex);
+                }
             }
         }
 
@@ -217,6 +245,8 @@ namespace SlimeVrOta.Gui
             if (!IsReady)
                 return;
 
+            _socket?.Dispose();
+            _socket = null;
             _endPoint = new(IPAddress.Any, _port);
             CurrentState = FlashState.Connecting;
 
@@ -273,73 +303,79 @@ namespace SlimeVrOta.Gui
             CurrentState = FlashState.Flashing;
             FlashProgress.Value = 0.0;
 
-            using var fileStream = await _firmwareFile.OpenReadAsync();
-            var fileName = _firmwareFile.Name;
-            byte[] fileBytes;
-
-            // Handle ZIP
-            if (_firmwareFile.Name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
+            try
             {
-                using var zipFile = new ZipArchive(fileStream);
-                var file =
-                    zipFile.GetEntry("firmware-part-0.bin")
-                    ?? throw new Exception(
-                        "Could not retrieve firmware binary \"firmware-part-0.bin\" from ZIP archive."
-                    );
-                fileName = file.Name;
+                using var fileStream = await _firmwareFile.OpenReadAsync();
+                var fileName = _firmwareFile.Name;
+                byte[] fileBytes;
 
-                using var zipFileStream = file.Open();
-                using var memoryStream = new MemoryStream((int)file.Length);
-                await zipFileStream.CopyToAsync(memoryStream);
-                fileBytes = memoryStream.ToArray();
+                // Handle ZIP
+                if (_firmwareFile.Name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
+                {
+                    using var zipFile = new ZipArchive(fileStream);
+                    var file =
+                        zipFile.GetEntry("firmware-part-0.bin")
+                        ?? throw new Exception(
+                            "Could not retrieve firmware binary \"firmware-part-0.bin\" from ZIP archive."
+                        );
+                    fileName = file.Name;
+
+                    using var zipFileStream = file.Open();
+                    using var memoryStream = new MemoryStream((int)file.Length);
+                    await zipFileStream.CopyToAsync(memoryStream);
+                    fileBytes = memoryStream.ToArray();
+                }
+                else if (_firmwareFile.Name.EndsWith(".bin", StringComparison.OrdinalIgnoreCase))
+                {
+                    var fileSize =
+                        (await _firmwareFile.GetBasicPropertiesAsync()).Size ?? 1048576UL;
+
+                    using var memoryStream = new MemoryStream((int)fileSize);
+                    await fileStream.CopyToAsync(memoryStream);
+                    fileBytes = memoryStream.ToArray();
+                }
+                else
+                {
+                    throw new Exception("Unexpected firmware file type.");
+                }
+
+                Debug.WriteLine($"Loaded file \"{fileName}\" ({fileBytes.Length} bytes)");
+
+                var progress = new Progress<(int cur, int max)>(val =>
+                {
+                    FlashProgress.Value = (val.cur / (double)val.max) * 90.0;
+                });
+                await EspOta.Serve(
+                    new IPEndPoint(_endPoint.Address, 8266),
+                    fileName,
+                    fileBytes,
+                    "SlimeVR-OTA",
+                    EspOta.OtaCommands.FLASH,
+                    progress
+                );
+
+                Debug.WriteLine("Waiting for tracker response");
+                CurrentState = FlashState.Waiting;
+                await ReceiveHandshake();
+
+                Debug.WriteLine(
+                    "Tracker response received, waiting to make sure everything is done"
+                );
+                for (var i = 0; i < 10; i++)
+                {
+                    await Task.Delay(1000);
+                    FlashProgress.Value = 91.0 + i;
+                }
+
+                Debug.WriteLine("Firmware flashed successfully");
+                CurrentState = FlashState.Done;
             }
-            else if (_firmwareFile.Name.EndsWith(".bin", StringComparison.OrdinalIgnoreCase))
+            catch (Exception ex)
             {
-                var fileSize = (await _firmwareFile.GetBasicPropertiesAsync()).Size ?? 1048576UL;
-
-                using var memoryStream = new MemoryStream((int)fileSize);
-                await fileStream.CopyToAsync(memoryStream);
-                fileBytes = memoryStream.ToArray();
-            }
-            else
-            {
-                throw new Exception("Unexpected firmware file type.");
-            }
-
-            Debug.WriteLine($"Loaded file \"{fileName}\" ({fileBytes.Length} bytes)");
-
-            var progress = new Progress<(int cur, int max)>(val =>
-            {
-                FlashProgress.Value = (val.cur / (double)val.max) * 90.0;
-            });
-            var flashResult = await EspOta.Serve(
-                new IPEndPoint(_endPoint.Address, 8266),
-                fileName,
-                fileBytes,
-                "SlimeVR-OTA",
-                EspOta.OtaCommands.FLASH,
-                progress
-            );
-
-            if (!flashResult)
-            {
+                Debug.WriteLine(ex);
                 CurrentState = FlashState.Error;
-                return;
+                throw;
             }
-
-            Debug.WriteLine("Waiting for tracker response");
-            CurrentState = FlashState.Waiting;
-            await ReceiveHandshake();
-
-            Debug.WriteLine("Tracker response received, waiting to make sure everything is done");
-            for (var i = 0; i < 10; i++)
-            {
-                await Task.Delay(1000);
-                FlashProgress.Value = 91.0 + i;
-            }
-
-            Debug.WriteLine("Firmware flashed successfully");
-            CurrentState = FlashState.Done;
         }
     }
 }
