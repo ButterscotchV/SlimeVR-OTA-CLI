@@ -343,7 +343,7 @@ namespace SlimeVrOta.Gui
 
                 var progress = new Progress<(int cur, int max)>(val =>
                 {
-                    FlashProgress.Value = (val.cur / (double)val.max) * 90.0;
+                    FlashProgress.Value = (val.cur / (double)val.max) * 95.0;
                 });
                 await EspOta.Serve(
                     new IPEndPoint(_endPoint.Address, 8266),
@@ -361,10 +361,10 @@ namespace SlimeVrOta.Gui
                 Debug.WriteLine(
                     "Tracker response received, waiting to make sure everything is done"
                 );
-                for (var i = 0; i < 10; i++)
+                for (var i = 0; i < 5; i++)
                 {
                     await Task.Delay(1000);
-                    FlashProgress.Value = 91.0 + i;
+                    FlashProgress.Value = 96.0 + i;
                 }
 
                 Debug.WriteLine("Firmware flashed successfully");

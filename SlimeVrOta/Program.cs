@@ -50,7 +50,9 @@ try
     await WaitForHandshake();
     Console.WriteLine($"Received a handshake packet on port {port} from {endPoint}.");
 
-    Console.WriteLine("Press enter to flash the tracker...");
+    Console.WriteLine(
+        "Press enter to flash the tracker...\nWARNING: Do NOT turn off your tracker while flashing! Ensure the tracker is functioning after flashing before turning it off or proceeding to flash another tracker."
+    );
     Console.ReadLine();
 
     try
@@ -72,7 +74,12 @@ try
     await WaitForHandshake();
     Console.WriteLine($"Received a handshake packet on port {port} from {endPoint}.");
 
-    Console.WriteLine($"Tracker {endPoint} has been flashed successfully.");
+    Console.WriteLine("Waiting for 5 seconds to ensure the tracker has time to finish flashing...");
+    await Task.Delay(5000);
+
+    Console.WriteLine(
+        $"Tracker {endPoint} has been flashed successfully.\nWARNING: Please test your tracker before turning it off or proceeding to flash another tracker!"
+    );
     Console.WriteLine("Press any key to exit...");
     Console.ReadKey();
 }
