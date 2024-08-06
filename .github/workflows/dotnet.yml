@@ -45,7 +45,7 @@ jobs:
       run: dotnet test --verbosity normal
 
     - name: Publish CLI
-      run: dotnet publish SlimeVROta -c Release -r ${{ matrix.os.cs }} -o builds/cli-${{ matrix.os.cs }} -p:PublishAot=true
+      run: dotnet publish SlimeVrOta -c Release -r ${{ matrix.os.cs }} -o builds/cli-${{ matrix.os.cs }} -p:PublishAot=true
 
     - name: Upload a build artifact (CLI)
       uses: actions/upload-artifact@v4
@@ -55,7 +55,7 @@ jobs:
         path: builds/cli-${{ matrix.os.cs }}
 
     - name: Publish GUI
-      run: dotnet publish SlimeVROta.Gui -c Release -r ${{ matrix.os.cs }} -o builds/gui-${{ matrix.os.cs }}
+      run: dotnet publish SlimeVrOta.Gui -c Release -r ${{ matrix.os.cs }} -o builds/gui-${{ matrix.os.cs }}
 
     - name: Upload a build artifact (GUI)
       uses: actions/upload-artifact@v4
