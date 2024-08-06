@@ -45,7 +45,7 @@ jobs:
       run: dotnet test --verbosity normal
 
     - name: Publish CLI
-      run: dotnet publish SlimeVrOta -c Release -r ${{ matrix.os.cs }} -o builds/cli-${{ matrix.os.cs }} -p:PublishAot=true
+      run: dotnet publish SlimeVrOta -c Release -r ${{ matrix.os.cs }} -o builds/cli-${{ matrix.os.cs }} -p:PublishAot=true -p:PublishSingleFile=false
 
     - name: Upload a build artifact (CLI)
       uses: actions/upload-artifact@v4
