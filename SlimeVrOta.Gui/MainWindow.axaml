@@ -16,14 +16,12 @@
         <ResourceDictionary x:Key="Light">
           <SolidColorBrush x:Key="BackgroundBrush">WhiteSmoke</SolidColorBrush>
           <SolidColorBrush x:Key="MidgroundBrush">#e2d8eb</SolidColorBrush>
-          <SolidColorBrush x:Key="BorderBrush">#706080</SolidColorBrush>
           <BoxShadows x:Key="BorderShadow">1 1 8 2 #c5c5c5</BoxShadows>
           <SolidColorBrush x:Key="ProgressBrush">#d080ff</SolidColorBrush>
         </ResourceDictionary>
         <ResourceDictionary x:Key="Dark">
           <SolidColorBrush x:Key="BackgroundBrush">#252525</SolidColorBrush>
           <SolidColorBrush x:Key="MidgroundBrush">#383442</SolidColorBrush>
-          <SolidColorBrush x:Key="BorderBrush">#908892</SolidColorBrush>
           <BoxShadows x:Key="BorderShadow">1 1 8 2 #161616</BoxShadows>
           <SolidColorBrush x:Key="ProgressBrush">#a070d0</SolidColorBrush>
         </ResourceDictionary>
@@ -32,47 +30,6 @@
   </Window.Resources>
 
   <StackPanel x:Name="Root">
-    <Popup WindowManagerAddShadowHint="False"
-           Placement="Bottom"
-           Name="ErrorPopup"
-           MinWidth="200"
-           MaxWidth="700"
-           MaxHeight="500">
-      <Border Padding="8"
-              CornerRadius="4"
-              BorderThickness="3"
-              BorderBrush="{DynamicResource BorderBrush}"
-              Background="{DynamicResource BackgroundBrush}"
-              HorizontalAlignment="Center"
-              VerticalAlignment="Center">
-        <Grid RowDefinitions="*,Auto">
-          <Border Grid.Row="0"
-                  CornerRadius="4"
-                  Background="{DynamicResource MidgroundBrush}"
-                  VerticalAlignment="Stretch">
-            <ScrollViewer HorizontalScrollBarVisibility="Disabled"
-                          AllowAutoHide="False">
-              <SelectableTextBlock Name="ErrorText"
-                                   TextWrapping="Wrap"
-                                   Padding="8"
-                                   SelectionBrush="{DynamicResource ProgressBrush}"
-                                   HorizontalAlignment="Stretch"
-                                   VerticalAlignment="Stretch">
-                Unknown error.
-              </SelectableTextBlock>
-            </ScrollViewer>
-          </Border>
-          <Button Grid.Row="1"
-                  Margin="0 8 0 0"
-                  HorizontalAlignment="Stretch"
-                  HorizontalContentAlignment="Center"
-                  Name="CloseErrorButton">
-            Close
-          </Button>
-        </Grid>
-      </Border>
-    </Popup>
-    
     <Border Padding="8"
             CornerRadius="4"
             BoxShadow="{DynamicResource BorderShadow}"

@@ -88,7 +88,6 @@ namespace SlimeVrOta.Gui
         {
             InitializeComponent();
 
-            CloseErrorButton.Click += CloseError;
             FirmwareDropBox.AddHandler(DragDrop.DropEvent, SelectFirmwareDrop);
             SelectFileButton.Click += SelectFirmwareBrowse;
             RemoveTrackerButton.Click += RemoveTracker;
@@ -118,15 +117,14 @@ namespace SlimeVrOta.Gui
 
         private void ShowError(string text)
         {
-            ErrorText.Text = text;
-            ErrorPopup.IsOpen = true;
+            var dialog = new ErrorDialog();
+            dialog.ErrorText.Text = text;
+            dialog.Closed += OnErrorClose;
+            dialog.ShowDialog(this);
         }
 
-        public void CloseError(object? sender, RoutedEventArgs e)
+        private void OnErrorClose(object? sender, EventArgs e)
         {
-            ErrorText.Text = "Unknown error.";
-            ErrorPopup.IsOpen = false;
-
             if (_runDiscoveryOnClose && CurrentState == FlashState.Connecting)
             {
                 _ = ReceiveHandshake(5000);
