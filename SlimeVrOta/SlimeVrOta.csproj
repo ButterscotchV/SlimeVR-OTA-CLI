@@ -7,6 +7,10 @@
     <Nullable>enable</Nullable>
     <AssemblyName>SlimeVR-OTA</AssemblyName>
     <ApplicationIcon>icon.ico</ApplicationIcon>
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>true</SelfContained>
+    <PublishTrimmed>true</PublishTrimmed>
+    <StripSymbols>true</StripSymbols>
   </PropertyGroup>
 
   <ItemGroup>

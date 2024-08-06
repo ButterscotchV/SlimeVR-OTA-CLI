@@ -1,5 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
-    
+
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0</TargetFramework>
@@ -9,6 +9,10 @@
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     <AssemblyName>SlimeVR-OTA-GUI</AssemblyName>
     <ApplicationIcon>Assets\icon.ico</ApplicationIcon>
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>true</SelfContained>
+    <PublishTrimmed>true</PublishTrimmed>
+    <StripSymbols>true</StripSymbols>
   </PropertyGroup>
 
   <ItemGroup>
@@ -35,5 +39,5 @@
   <ItemGroup>
     <Content Include="Assets\icon.ico" />
   </ItemGroup>
-    
+
 </Project>
