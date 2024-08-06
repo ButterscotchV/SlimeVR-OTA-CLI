@@ -27,7 +27,7 @@ namespace SlimeVrOta.Gui
             Error
         }
 
-        public FilePickerFileType ZipFileType =
+        public static readonly FilePickerFileType ZipFileType =
             new("ZIP archive")
             {
                 Patterns = ["*.zip"],
@@ -35,12 +35,24 @@ namespace SlimeVrOta.Gui
                 MimeTypes = ["application/zip", "x-zip-compressed"],
             };
 
-        public FilePickerFileType BinFileType =
+        public static readonly FilePickerFileType BinFileType =
             new("Firmware binary")
             {
                 Patterns = ["*.bin"],
                 AppleUniformTypeIdentifiers = ["public.data"],
                 MimeTypes = ["application/octet-stream"],
+            };
+
+        public static readonly FilePickerFileType FirmwareFileType =
+            new("Firmware ZIP or binary")
+            {
+                Patterns = [.. ZipFileType.Patterns, .. BinFileType.Patterns],
+                AppleUniformTypeIdentifiers =
+                [
+                    .. ZipFileType.AppleUniformTypeIdentifiers,
+                    .. BinFileType.AppleUniformTypeIdentifiers
+                ],
+                MimeTypes = [.. ZipFileType.MimeTypes, .. BinFileType.MimeTypes],
             };
 
         private IStorageFile? _firmwareFile;
@@ -49,6 +61,7 @@ namespace SlimeVrOta.Gui
         private readonly byte[] _udpBuffer = new byte[65535];
         private static readonly IPEndPoint _localEndPoint = new(IPAddress.Any, _port);
 
+        private bool _runDiscoveryOnClose = false;
         private Socket? _socket;
         private IPEndPoint _endPoint = new(IPAddress.Any, _port);
 
@@ -75,12 +88,11 @@ namespace SlimeVrOta.Gui
         {
             InitializeComponent();
 
+            CloseErrorButton.Click += CloseError;
             FirmwareDropBox.AddHandler(DragDrop.DropEvent, SelectFirmwareDrop);
             SelectFileButton.Click += SelectFirmwareBrowse;
             RemoveTrackerButton.Click += RemoveTracker;
             FlashButton.Click += FlashFirmware;
-
-            _ = ReceiveHandshake();
         }
 
         protected override void OnLoaded(RoutedEventArgs e)
@@ -90,8 +102,10 @@ namespace SlimeVrOta.Gui
             MinWidth = Width + 100;
             MinHeight = Height;
             MaxHeight = Height;
-
             SizeToContent = SizeToContent.Manual;
+            Title = $"SlimeVR OTA Tool v{Constants.Version}";
+
+            _ = ReceiveHandshake();
         }
 
         protected override void OnClosed(EventArgs e)
@@ -100,6 +114,24 @@ namespace SlimeVrOta.Gui
 
             _socket?.Dispose();
             _socket = null;
+        }
+
+        private void ShowError(string text)
+        {
+            ErrorText.Text = text;
+            ErrorPopup.IsOpen = true;
+        }
+
+        public void CloseError(object? sender, RoutedEventArgs e)
+        {
+            ErrorText.Text = "Unknown error.";
+            ErrorPopup.IsOpen = false;
+
+            if (_runDiscoveryOnClose && CurrentState == FlashState.Connecting)
+            {
+                _ = ReceiveHandshake(5000);
+            }
+            _runDiscoveryOnClose = false;
         }
 
         private void UpdateFileStatus()
@@ -163,7 +195,7 @@ namespace SlimeVrOta.Gui
                 new FilePickerOpenOptions()
                 {
                     Title = "Select firmware file...",
-                    FileTypeFilter = [ZipFileType, BinFileType],
+                    FileTypeFilter = [FirmwareFileType],
                     AllowMultiple = false,
                 }
             );
@@ -190,16 +222,42 @@ namespace SlimeVrOta.Gui
             }
         }
 
-        public async Task ReceiveHandshake(CancellationToken cancelToken = default)
+        public async Task ReceiveHandshake(int delay = 0, CancellationToken cancelToken = default)
         {
-            if (_socket == null)
+            if (delay > 0)
             {
-                _socket = new Socket(
-                    AddressFamily.InterNetwork,
-                    SocketType.Dgram,
-                    ProtocolType.Udp
-                );
-                _socket.Bind(_localEndPoint);
+                try
+                {
+                    await Task.Delay(delay, cancelToken);
+                }
+                catch
+                {
+                    if (cancelToken.IsCancellationRequested)
+                        return;
+                }
+            }
+
+            if (_socket == null || _socket?.IsBound != true)
+            {
+                try
+                {
+                    _socket?.Dispose();
+                    _socket = new Socket(
+                        AddressFamily.InterNetwork,
+                        SocketType.Dgram,
+                        ProtocolType.Udp
+                    );
+                    _socket.Bind(_localEndPoint);
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine(ex);
+                    _runDiscoveryOnClose = true;
+                    ShowError(
+                        $"Error while binding socket, make sure SlimeVR isn't running and port {_port} is not in use!\n\n{ex}"
+                    );
+                    return;
+                }
             }
 
             while (!cancelToken.IsCancellationRequested && _socket.IsBound)
@@ -366,7 +424,7 @@ namespace SlimeVrOta.Gui
                 CurrentState = FlashState.Waiting;
 
                 using var cancelSrc = new CancellationTokenSource();
-                var handshake = ReceiveHandshake(cancelSrc.Token);
+                var handshake = ReceiveHandshake(cancelToken: cancelSrc.Token);
                 // 45 second timeout, it should not take that long
                 cancelSrc.CancelAfter(45000);
 
@@ -398,6 +456,7 @@ namespace SlimeVrOta.Gui
             catch (Exception ex)
             {
                 Debug.WriteLine(ex);
+                ShowError(ex.ToString());
                 CurrentState = FlashState.Error;
             }
         }

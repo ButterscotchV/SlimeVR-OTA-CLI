@@ -5,6 +5,8 @@ using SlimeVrOta;
 
 try
 {
+    Console.WriteLine($"SlimeVR OTA Tool v{Constants.Version}");
+
     var file = new FileInfo("firmware-part-0.bin");
     if (!file.Exists)
     {
