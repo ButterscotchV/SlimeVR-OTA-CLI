@@ -38,7 +38,7 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore
 
-    - if: matrix.os == 'ubuntu-22.04'
+    - if: matrix.os.cs != 'win-x64'
       name: Build
       run: dotnet build --no-restore -c Release
 
