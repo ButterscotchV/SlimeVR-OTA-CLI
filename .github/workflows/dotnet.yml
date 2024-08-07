@@ -47,13 +47,13 @@ jobs:
 
     - name: Copy additional release files
       run: |
-        mkdir builds/cli_${{ matrix.os.cs }}/
+        mkdir -p builds/cli_${{ matrix.os.cs }}/
         cp LICENSE builds/cli_${{ matrix.os.cs }}/
         cp NOTICE.md builds/cli_${{ matrix.os.cs }}/
-        mkdir builds/cli_aot_${{ matrix.os.cs }}/
+        mkdir -p builds/cli_aot_${{ matrix.os.cs }}/
         cp LICENSE builds/cli_aot_${{ matrix.os.cs }}/
         cp NOTICE.md builds/cli_aot_${{ matrix.os.cs }}/
-        mkdir builds/gui_${{ matrix.os.cs }}/
+        mkdir -p builds/gui_${{ matrix.os.cs }}/
         cp LICENSE builds/gui_${{ matrix.os.cs }}/
         cp NOTICE.md builds/gui_${{ matrix.os.cs }}/
 
