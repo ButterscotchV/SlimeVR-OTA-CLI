@@ -53,7 +53,9 @@ jobs:
       with:
         name: SlimeVR-OTA_${{ matrix.os.cs }}
         # A file, directory or wildcard pattern that describes what to upload
-        path: builds/cli_${{ matrix.os.cs }}/
+        path: |
+          builds/cli_${{ matrix.os.cs }}/SlimeVR-OTA.exe
+          builds/cli_${{ matrix.os.cs }}/SlimeVR-OTA
 
     - name: Publish GUI
       run: dotnet publish SlimeVrOta.Gui -c Release -r ${{ matrix.os.cs }} -o builds/gui_${{ matrix.os.cs }} -p:CSharpier_Bypass=true
@@ -65,5 +67,6 @@ jobs:
         # A file, directory or wildcard pattern that describes what to upload
         path: |
           builds/gui_${{ matrix.os.cs }}/
+          !builds/gui_${{ matrix.os.cs }}/*.pdb
           !builds/gui_${{ matrix.os.cs }}/SlimeVR-OTA
           !builds/gui_${{ matrix.os.cs }}/SlimeVR-OTA.*
