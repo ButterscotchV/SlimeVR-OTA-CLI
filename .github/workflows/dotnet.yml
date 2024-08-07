@@ -45,6 +45,18 @@ jobs:
     - name: Test
       run: dotnet test --verbosity normal
 
+    - name: Copy additional release files
+      run: |
+        mkdir builds/cli_${{ matrix.os.cs }}/
+        cp LICENSE builds/cli_${{ matrix.os.cs }}/
+        cp NOTICE.md builds/cli_${{ matrix.os.cs }}/
+        mkdir builds/cli_aot_${{ matrix.os.cs }}/
+        cp LICENSE builds/cli_aot_${{ matrix.os.cs }}/
+        cp NOTICE.md builds/cli_aot_${{ matrix.os.cs }}/
+        mkdir builds/gui_${{ matrix.os.cs }}/
+        cp LICENSE builds/gui_${{ matrix.os.cs }}/
+        cp NOTICE.md builds/gui_${{ matrix.os.cs }}/
+
     - name: Publish CLI
       run: dotnet publish SlimeVrOta -c Release -r ${{ matrix.os.cs }} -o builds/cli_${{ matrix.os.cs }} -p:CSharpier_Bypass=true
 
@@ -56,8 +68,8 @@ jobs:
         path: |
           builds/cli_${{ matrix.os.cs }}/SlimeVR-OTA.exe
           builds/cli_${{ matrix.os.cs }}/SlimeVR-OTA
-          LICENSE
-          NOTICE.md
+          builds/cli_${{ matrix.os.cs }}/LICENSE
+          builds/cli_${{ matrix.os.cs }}/NOTICE.md
 
     - name: Publish CLI AOT
       run: dotnet publish SlimeVrOta -c Release -r ${{ matrix.os.cs }} -o builds/cli_aot_${{ matrix.os.cs }} -p:PublishAot=true -p:PublishSingleFile=false -p:CSharpier_Bypass=true
@@ -70,8 +82,8 @@ jobs:
         path: |
           builds/cli_aot_${{ matrix.os.cs }}/SlimeVR-OTA.exe
           builds/cli_aot_${{ matrix.os.cs }}/SlimeVR-OTA
-          LICENSE
-          NOTICE.md
+          builds/cli_aot_${{ matrix.os.cs }}/LICENSE
+          builds/cli_aot_${{ matrix.os.cs }}/NOTICE.md
 
     - name: Publish GUI
       run: dotnet publish SlimeVrOta.Gui -c Release -r ${{ matrix.os.cs }} -o builds/gui_${{ matrix.os.cs }} -p:CSharpier_Bypass=true
@@ -86,5 +98,5 @@ jobs:
           !builds/gui_${{ matrix.os.cs }}/*.pdb
           !builds/gui_${{ matrix.os.cs }}/SlimeVR-OTA
           !builds/gui_${{ matrix.os.cs }}/SlimeVR-OTA.*
-          LICENSE
-          NOTICE.md
+          builds/gui_${{ matrix.os.cs }}/LICENSE
+          builds/gui_${{ matrix.os.cs }}/NOTICE.md
