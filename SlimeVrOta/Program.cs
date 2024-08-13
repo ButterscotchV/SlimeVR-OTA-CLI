@@ -23,7 +23,17 @@ try
         SocketType.Dgram,
         ProtocolType.Udp
     );
-    slimeSocket.Bind(new IPEndPoint(IPAddress.Any, port));
+    try
+    {
+        slimeSocket.Bind(new IPEndPoint(IPAddress.Any, port));
+    }
+    catch (Exception e)
+    {
+        throw new OtaException(
+            $"Error while binding socket, make sure SlimeVR isn't running and port {port} is not in use!",
+            e
+        );
+    }
     var endPoint = new IPEndPoint(IPAddress.Any, port);
 
     async Task WaitForHandshake()
@@ -74,9 +84,9 @@ try
             EspOta.OtaCommands.FLASH
         );
     }
-    catch (Exception ex)
+    catch (Exception e)
     {
-        throw new OtaException($"Failed to flash tracker {endPoint}.", ex);
+        throw new OtaException($"Failed to flash tracker {endPoint}.", e);
     }
 
     Console.WriteLine("Waiting to receive post-flash handshake...");
