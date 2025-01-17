@@ -230,8 +230,7 @@ namespace SlimeVrOta.Gui
                 }
                 catch
                 {
-                    if (cancelToken.IsCancellationRequested)
-                        return;
+                    cancelToken.ThrowIfCancellationRequested();
                 }
             }
 
@@ -258,13 +257,15 @@ namespace SlimeVrOta.Gui
                 }
             }
 
-            while (!cancelToken.IsCancellationRequested && _socket.IsBound)
+            while (_socket.IsBound)
             {
+                cancelToken.ThrowIfCancellationRequested();
                 try
                 {
                     // Clear socket buffer
-                    while (!cancelToken.IsCancellationRequested && _socket.Available > 0)
+                    while (_socket.Available > 0)
                     {
+                        cancelToken.ThrowIfCancellationRequested();
                         await _socket.ReceiveFromAsync(_udpBuffer, _endPoint, cancelToken);
                     }
 
@@ -340,7 +341,6 @@ namespace SlimeVrOta.Gui
             else
             {
                 FlashButton.IsEnabled = false;
-
                 switch (CurrentState)
                 {
                     case FlashState.Connecting:
@@ -421,31 +421,57 @@ namespace SlimeVrOta.Gui
                 Debug.WriteLine("Waiting for tracker response");
                 CurrentState = FlashState.Waiting;
 
-                using var cancelSrc = new CancellationTokenSource();
-                var handshake = ReceiveHandshake(cancelToken: cancelSrc.Token);
+                using var timeoutSrc = new CancellationTokenSource();
+                var handshake = ReceiveHandshake(cancelToken: timeoutSrc.Token);
                 // 45 second timeout, it should not take that long
-                cancelSrc.CancelAfter(45000);
+                timeoutSrc.CancelAfter(45000);
 
-                using var timerCancel = new CancellationTokenSource();
+                // Visually display a reasonable waiting time on the progress bar
                 try
                 {
-                    handshake.GetAwaiter().OnCompleted(timerCancel.Cancel);
+                    using var onHandshakeSrc = CancellationTokenSource.CreateLinkedTokenSource(
+                        timeoutSrc.Token
+                    );
+                    handshake
+                        .GetAwaiter()
+                        .OnCompleted(() =>
+                        {
+                            try
+                            {
+                                onHandshakeSrc.Cancel();
+                            }
+                            catch
+                            {
+                                // Ignore
+                            }
+                        });
+
                     while (
-                        !timerCancel.IsCancellationRequested
+                        !onHandshakeSrc.IsCancellationRequested
                         && !handshake.IsCompleted
                         && FlashProgress.Value < 95.0
                     )
                     {
-                        await Task.Delay(300, timerCancel.Token);
+                        await Task.Delay(300, onHandshakeSrc.Token);
                         FlashProgress.Value += 1.0;
                     }
                 }
                 catch
                 {
-                    // Ignore, this is just to wait for the handshake to finish
+                    // Ignore errors, this is purely visual
                 }
 
-                await handshake;
+                try
+                {
+                    await handshake;
+                }
+                catch (Exception ex)
+                {
+                    throw new Exception(
+                        "Waiting for handshake timed out. Tracker may be bricked, proceed with caution.",
+                        ex
+                    );
+                }
 
                 Debug.WriteLine("Firmware flashed successfully");
                 FlashProgress.Value = 100.0;
